@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>单词测试系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* 颜色系统 */
+            --primary: #4A6CF7;
+            --primary-light: #EFF2FF;
+            --secondary: #FF9F43;
+            --success: #28C76F;
+            --error: #EA5455;
+            --warning: #FF9F43;
+            --text-primary: #2B2B2B;
+            --text-secondary: #5E5E5E;
+            --text-tertiary: #9E9E9E;
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F8F8F8;
+            --border: #E0E0E0;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-full: 9999px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #5D78FF;
+                --primary-light: #2D3748;
+                --text-primary: #F8F8F8;
+                --text-secondary: #D1D1D1;
+                --text-tertiary: #9E9E9E;
+                --bg-primary: #1A1A1A;
+                --bg-secondary: #2D2D2D;
+                --border: #3D3D3D;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding: 0;
+            max-width: 100vw;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* 容器布局 */
+        .app-container {
+            max-width: 600px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-primary);
+        }
+
+        .content {
+            flex: 1;
+            padding: 20px;
+            padding-bottom: 80px;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            background-color: var(--bg-primary);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .navbar-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .navbar-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: transparent;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .icon-btn:hover {
+            background-color: var(--bg-secondary);
+        }
+
+        /* 卡片组件 */
+        .card {
+            background-color: var(--bg-primary);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .card-header {
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* 上传区域 */
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-md);
+            padding: 40px 20px;
+            text-align: center;
+            transition: all 0.3s;
+            background-color: var(--bg-secondary);
+            cursor: pointer;
+        }
+
+        .upload-area:hover, .upload-area.active {
+            border-color: var(--primary);
+            background-color: var(--primary-light);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+
+        .upload-text {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 14px;
+            color: var(--text-tertiary);
+        }
+
+        /* 表单元素 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+        }
+
+        /* 按钮 */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 500;
+            border-radius: var(--radius-sm);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #3A5BEF;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--border);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--bg-secondary);
+        }
+
+        .btn-danger {
+            background-color: var(--error);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #D94345;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        /* 测试模式选择 */
+        .mode-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-btn:hover {
+            background-color: var(--bg-secondary);
+        }
+
+        .mode-btn.selected {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* 测试界面 */
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .test-progress {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .test-timer {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .test-timer-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .word-card {
+            background-color: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            padding: 32px 24px;
+            margin-bottom: 24px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .word-display {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .word-meaning {
+            font-size: 20px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .answer-input {
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .answer-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* 选择题选项 */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .option-btn {
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover {
+            background-color: var(--bg-secondary);
+        }
+
+        .option-btn.selected {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* 结果页面 */
+        .result-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .result-score {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .result-meta {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .result-stats {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .wrong-words-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+
+        .wrong-words-table th {
+            text-align: left;
+            padding: 12px 16px;
+            background-color: var(--bg-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .wrong-words-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .wrong-words-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* 底部操作栏 */
+        .action-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-primary);
+            border-top: 1px solid var(--border);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 10;
+        }
+
+        /* 工具类 */
+        .text-center {
+            text-align: center;
+        }
+        .mt-2 { margin-top: 8px; }
+        .mt-4 { margin-top: 16px; }
+        .mt-6 { margin-top: 24px; }
+        .mb-4 { margin-bottom: 16px; }
+        .mb-6 { margin-bottom: 24px; }
+        .d-none { display: none; }
+        .d-block { display: block; }
+        .w-100 { width: 100%; }
+
+        /* 动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 教师上传页面 -->
+        <div id="teacherPage">
+            <div class="navbar">
+                <div class="navbar-title">单词测试系统</div>
+                <div class="navbar-actions">
+                    <button class="icon-btn">⚙️</button>
+                </div>
+            </div>
+            
+            <div class="content">
+                <div class="card fade-in">
+                    <div class="card-header">
+                        <div class="card-title">上传词表</div>
+                    </div>
+                    
+                    <div class="upload-area" id="dropArea">
+                        <div class="upload-icon">📚</div>
+                        <div class="upload-text">拖放Excel文件到此处</div>
+                        <div class="upload-hint">或</div>
+                        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" class="d-none">
+                        <button class="btn btn-outline mt-4" onclick="document.getElementById('fileInput').click()">选择文件</button>
+                        <div class="upload-hint mt-4">文件格式：第一列单词，第二列释义</div>
+                    </div>
+                </div>
+                
+                <div class="card fade-in d-none" id="previewArea">
+                    <div class="card-header">
+                        <div class="card-title">词表预览</div>
+                    </div>
+                    
+                    <div class="word-preview">
+                        <table id="previewTable">
+                            <thead>
+                                <tr>
+                                    <th>单词</th>
+                                    <th>释义</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-6 text-center">
+                        <button class="btn btn-primary" id="startSetupBtn">开始设置测试</button>
+                        <button class="btn btn-outline mt-4" onclick="location.reload()">重新上传</button>
+                    </div>
+                </div>
+                
+                <div class="card fade-in d-none" id="settingsArea">
+                    <div class="card-header">
+                        <div class="card-title">测试设置</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="testCount">题目数量</label>
+                        <input type="number" id="testCount" min="1" max="100" value="20" class="form-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">测试模式</label>
+                        <div class="mode-selector">
+                            <button type="button" class="mode-btn" data-mode="spelling">拼写测试</button>
+                            <button type="button" class="mode-btn" data-mode="choice">选择题</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="testTitle">测试标题</label>
+                        <input type="text" id="testTitle" placeholder="例如: Unit 1 单词测试" class="form-input">
+                    </div>
+                    
+                    <div class="mt-6 text-center">
+                        <button class="btn btn-primary w-100" id="confirmSettingsBtn">生成测试链接</button>
+                    </div>
+                </div>
+                
+                <div class="card fade-in d-none" id="shareArea">
+                    <div class="card-header">
+                        <div class="card-title">测试链接已生成</div>
+                    </div>
+                    
+                    <p>请将以下链接分享给学生：</p>
+                    
+                    <div class="share-link mt-4">
+                        <input type="text" id="testLink" readonly class="form-input">
+                        <button class="btn btn-primary" onclick="copyTestLink()">复制</button>
+                    </div>
+                    
+                    <div class="mt-6 text-center">
+                        <button class="btn btn-outline" onclick="location.reload()">创建新测试</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 学生测试页面 -->
+        <div id="studentPage" class="d-none">
+            <div class="navbar">
+                <div class="navbar-title" id="paperTitle">单词测试</div>
+                <div class="navbar-actions">
+                    <div class="test-timer">
+                        <span class="test-timer-icon">⏱️</span>
+                        <span id="timerDisplay">00:00</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content">
+                <!-- 学生信息输入 -->
+                <div class="card fade-in" id="studentInfoPage">
+                    <div class="form-group">
+                        <label class="form-label" for="studentName">姓名</label>
+                        <input type="text" id="studentName" class="form-input" placeholder="请输入您的姓名">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="studentClass">班级</label>
+                        <input type="text" id="studentClass" class="form-input" placeholder="请输入您的班级">
+                    </div>
+                    
+                    <div class="mt-6 text-center">
+                        <button class="btn btn-primary w-100" id="startTestBtn">开始测试</button>
+                    </div>
+                </div>
+                
+                <!-- 测试界面 -->
+                <div class="d-none" id="testPage">
+                    <div class="test-header">
+                        <div class="test-progress" id="progressText">1/20</div>
+                    </div>
+                    
+                    <div class="word-card">
+                        <div class="word-display" id="currentWord">Word</div>
+                        <div class="word-meaning" id="meaning">单词</div>
+                    </div>
+                    
+                    <div id="spellingTest" class="test-mode">
+                        <input type="text" class="answer-input" id="answerInput" placeholder="请输入单词拼写">
+                    </div>
+                    
+                    <div id="choiceTest" class="test-mode d-none">
+                        <div class="options-grid" id="optionsContainer">
+                            <!-- 选项将通过JS动态生成 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 结果页面 -->
+                <div class="d-none" id="resultPage">
+                    <div class="result-header">
+                        <div class="result-score" id="scoreDisplay">85%</div>
+                        <div class="result-meta" id="testTime">测试时间: 5分30秒</div>
+                        <div class="result-meta" id="resultTestTitle">Unit 1 单词测试</div>
+                    </div>
+                    
+                    <div class="result-stats">
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalQuestions">20</div>
+                            <div class="stat-label">总题数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" style="color: var(--success);" id="correctCount">17</div>
+                            <div class="stat-label">正确</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" style="color: var(--error);" id="wrongCount">3</div>
+                            <div class="stat-label">错误</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">错题列表</div>
+                        </div>
+                        
+                        <table class="wrong-words-table">
+                            <thead>
+                                <tr>
+                                    <th>单词</th>
+                                    <th>你的答案</th>
+                                    <th>正确答案</th>
+                                </tr>
+                            </thead>
+                            <tbody id="wrongTableBody">
+                                <!-- 错题将通过JS动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 底部操作栏 -->
+            <div class="action-bar d-none" id="testActionBar">
+                <button class="btn btn-secondary" id="submitBtn">提交</button>
+            </div>
+            
+            <div class="action-bar d-none" id="resultActionBar">
+                <button class="btn btn-primary" id="exportExcelBtn">导出错题表</button>
+                <button class="btn btn-outline" onclick="location.reload()">返回首页</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let wordList = [];
+        let testWords = [];
+        let currentIndex = 0;
+        let score = 0;
+        let wrongAnswers = [];
+        let testModes = ['spelling'];
+        let testSettings = {
+            count: 20,
+            title: '单词测试'
+        };
+        let studentInfo = {
+            name: '',
+            class: ''
+        };
+        let timerInterval;
+        let startTime;
+        let elapsedTime = 0;
+        
+        // DOM元素
+        const teacherPage = document.getElementById('teacherPage');
+        const studentPage = document.getElementById('studentPage');
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewArea = document.getElementById('previewArea');
+        const previewTable = document.getElementById('previewTable').getElementsByTagName('tbody')[0];
+        const settingsArea = document.getElementById('settingsArea');
+        const startSetupBtn = document.getElementById('startSetupBtn');
+        const testCountInput = document.getElementById('testCount');
+        const testTitleInput = document.getElementById('testTitle');
+        const confirmSettingsBtn = document.getElementById('confirmSettingsBtn');
+        const shareArea = document.getElementById('shareArea');
+        const testLinkInput = document.getElementById('testLink');
+        const studentInfoPage = document.getElementById('studentInfoPage');
+        const paperTitleEl = document.getElementById('paperTitle');
+        const studentNameInput = document.getElementById('studentName');
+        const studentClassInput = document.getElementById('studentClass');
+        const startTestBtn = document.getElementById('startTestBtn');
+        const testPage = document.getElementById('testPage');
+        const resultPage = document.getElementById('resultPage');
+        const currentWordEl = document.getElementById('currentWord');
+        const meaningEl = document.getElementById('meaning');
+        const answerInput = document.getElementById('answerInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const progressText = document.getElementById('progressText');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const testTimeEl = document.getElementById('testTime');
+        const totalQuestionsEl = document.getElementById('totalQuestions');
+        const correctCountEl = document.getElementById('correctCount');
+        const wrongCountEl = document.getElementById('wrongCount');
+        const wrongTableBody = document.getElementById('wrongTableBody');
+        const testActionBar = document.getElementById('testActionBar');
+        const resultActionBar = document.getElementById('resultActionBar');
+        const exportExcelBtn = document.getElementById('exportExcelBtn');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const spellingTestEl = document.getElementById('spellingTest');
+        const choiceTestEl = document.getElementById('choiceTest');
+        const optionsContainer = document.getElementById('optionsContainer');
+        const modeButtons = document.querySelectorAll('.mode-btn');
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 绑定事件
+            startSetupBtn.addEventListener('click', startSetup);
+            confirmSettingsBtn.addEventListener('click', confirmSettings);
+            startTestBtn.addEventListener('click', startTest);
+            submitBtn.addEventListener('click', checkAnswer);
+            exportExcelBtn.addEventListener('click', exportToExcel);
+            
+            // 模式选择按钮
+            modeButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const mode = this.dataset.mode;
+                    this.classList.toggle('selected');
+                    
+                    if (this.classList.contains('selected')) {
+                        if (!testModes.includes(mode)) {
+                            testModes.push(mode);
+                        }
+                    } else {
+                        testModes = testModes.filter(m => m !== mode);
+                    }
+                });
+            });
+            
+            // 拖放功能
+            dropArea.addEventListener('dragover', handleDragOver);
+            dropArea.addEventListener('dragleave', handleDragLeave);
+            dropArea.addEventListener('drop', handleDrop);
+            fileInput.addEventListener('change', handleFileChange);
+            
+            // 检查URL参数
+            checkUrlParams();
+        });
+
+        // 检查URL参数
+        function checkUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const testData = urlParams.get('test');
+            
+            if (testData) {
+                try {
+                    const data = JSON.parse(decodeURIComponent(testData));
+                    wordList = data.wordList;
+                    testSettings = data.testSettings;
+                    testModes = data.testModes;
+                    
+                    // 切换到学生界面
+                    teacherPage.style.display = 'none';
+                    studentPage.style.display = 'block';
+                    studentInfoPage.style.display = 'block';
+                    paperTitleEl.textContent = testSettings.title;
+                } catch (e) {
+                    console.error('解析测试数据失败:', e);
+                }
+            }
+        }
+
+        // 拖放功能
+        function handleDragOver(e) {
+            e.preventDefault();
+            dropArea.classList.add('active');
+        }
+
+        function handleDragLeave() {
+            dropArea.classList.remove('active');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            dropArea.classList.remove('active');
+            
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileUpload(e.dataTransfer.files[0]);
+            }
+        }
+
+        function handleFileChange(e) {
+            if (e.target.files.length) {
+                handleFileUpload(e.target.files[0]);
+            }
+        }
+
+        // 处理文件上传
+        function handleFileUpload(file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: ['word', 'meaning'] });
+                
+                wordList = jsonData.filter(item => item.word).map(item => ({
+                    word: item.word.toString().trim(),
+                    meaning: item.meaning ? item.meaning.toString().trim() : ''
+                }));
+                
+                showPreview();
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 显示预览
+        function showPreview() {
+            previewTable.innerHTML = '';
+            
+            wordList.slice(0, 5).forEach(item => {
+                const row = previewTable.insertRow();
+                row.insertCell(0).textContent = item.word;
+                row.insertCell(1).textContent = item.meaning;
+            });
+            
+            if (wordList.length > 5) {
+                const row = previewTable.insertRow();
+                const cell = row.insertCell(0);
+                cell.colSpan = 2;
+                cell.textContent = `...还有${wordList.length - 5}条数据`;
+                cell.style.textAlign = 'center';
+                cell.style.fontStyle = 'italic';
+            }
+            
+            previewArea.classList.remove('d-none');
+            dropArea.classList.add('d-none');
+        }
+
+        // 开始设置测试
+        function startSetup() {
+            previewArea.classList.add('d-none');
+            settingsArea.classList.remove('d-none');
+        }
+
+        // 确认测试设置
+        function confirmSettings() {
+            // 获取题目数量
+            testSettings.count = parseInt(testCountInput.value);
+            if (isNaN(testSettings.count) || testSettings.count < 1) {
+                alert('请输入有效的题目数量');
+                return;
+            }
+            
+            // 获取测试标题
+            testSettings.title = testTitleInput.value || '单词测试';
+            
+            // 检查是否选择了至少一种测试模式
+            if (testModes.length === 0) {
+                alert('请至少选择一种测试模式');
+                return;
+            }
+            
+            // 生成测试链接
+            generateTestLink();
+        }
+
+        // 生成测试链接
+        function generateTestLink() {
+            const testData = {
+                wordList: wordList,
+                testSettings: testSettings,
+                testModes: testModes
+            };
+            
+            const encodedData = encodeURIComponent(JSON.stringify(testData));
+            const testUrl = `${window.location.origin}${window.location.pathname}?test=${encodedData}`;
+            
+            // 显示分享链接
+            testLinkInput.value = testUrl;
+            settingsArea.classList.add('d-none');
+            shareArea.classList.remove('d-none');
+        }
+
+        // 复制测试链接
+        function copyTestLink() {
+            testLinkInput.select();
+            document.execCommand('copy');
+            alert('链接已复制到剪贴板');
+        }
+
+        // 开始测试
+        function startTest() {
+            if (!studentNameInput.value.trim()) {
+                alert('请输入姓名');
+                return;
+            }
+            
+            studentInfo = {
+                name: studentNameInput.value.trim(),
+                class: studentClassInput.value.trim()
+            };
+            
+            // 准备测试词表
+            prepareTestWords();
+            
+            // 进入测试页面
+            studentInfoPage.style.display = 'none';
+            testPage.style.display = 'block';
+            testActionBar.style.display = 'flex';
+            
+            // 开始计时
+            startTimer();
+            
+            // 显示第一题
+            showNextQuestion();
+        }
+
+        // 开始计时器
+        function startTimer() {
+            startTime = Date.now() - elapsedTime;
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        // 更新计时器
+        function updateTimer() {
+            const currentTime = Date.now();
+            elapsedTime = currentTime - startTime;
+            
+            const minutes = Math.floor(elapsedTime / 60000);
+            const seconds = Math.floor((elapsedTime % 60000) / 1000);
+            
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // 停止计时器
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+
+        // 准备测试词表
+        function prepareTestWords() {
+            // 打乱词表顺序
+            const shuffled = shuffleArray([...wordList]);
+            
+            // 根据题目数量截取
+            testWords = shuffled.slice(0, Math.min(testSettings.count, shuffled.length));
+            
+            // 为每个单词分配测试模式
+            testWords.forEach(word => {
+                word.testMode = testModes[Math.floor(Math.random() * testModes.length)];
+            });
+        }
+
+        // 显示下一题
+        function showNextQuestion() {
+            if (currentIndex >= testWords.length) {
+                showResults();
+                return;
+            }
+            
+            const currentWord = testWords[currentIndex];
+            
+            // 根据测试模式显示不同界面
+            spellingTestEl.classList.add('d-none');
+            choiceTestEl.classList.add('d-none');
+            
+            switch(currentWord.testMode) {
+                case 'spelling':
+                    showSpellingQuestion(currentWord);
+                    break;
+                case 'choice':
+                    showChoiceQuestion(currentWord);
+                    break;
+            }
+            
+            progressText.textContent = `${currentIndex + 1}/${testWords.length}`;
+        }
+
+        // 显示拼写题
+        function showSpellingQuestion(word) {
+            currentWordEl.textContent = '';
+            meaningEl.textContent = word.meaning;
+            
+            answerInput.value = '';
+            answerInput.focus();
+            
+            spellingTestEl.classList.remove('d-none');
+        }
+
+        // 显示选择题
+        function showChoiceQuestion(word) {
+            currentWordEl.textContent = word.word;
+            meaningEl.textContent = '';
+            
+            // 生成选项
+            const correctAnswer = word.meaning;
+            let options = [correctAnswer];
+            
+            // 添加3个错误选项
+            const otherMeanings = wordList
+                .filter(item => item.meaning !== correctAnswer)
+                .map(item => item.meaning);
+            
+            // 随机选择3个不同错误选项
+            while (options.length < 4 && otherMeanings.length > 0) {
+                const randomIndex = Math.floor(Math.random() * otherMeanings.length);
+                const randomMeaning = otherMeanings.splice(randomIndex, 1)[0];
+                if (!options.includes(randomMeaning)) {
+                    options.push(randomMeaning);
+                }
+            }
+            
+            // 如果不够4个选项，补充空选项
+            while (options.length < 4) {
+                options.push("(未知选项)");
+            }
+            
+            // 打乱选项顺序
+            options = shuffleArray(options);
+            
+            // 渲染选项
+            optionsContainer.innerHTML = '';
+            options.forEach((option, index) => {
+                const optionBtn = document.createElement('div');
+                optionBtn.className = 'option-btn';
+                optionBtn.textContent = `${String.fromCharCode(65 + index)}. ${option}`;
+                optionBtn.dataset.meaning = option;
+                optionBtn.addEventListener('click', function() {
+                    // 移除所有选中状态
+                    document.querySelectorAll('.option-btn').forEach(btn => {
+                        btn.classList.remove('selected');
+                    });
+                    
+                    // 添加当前选中状态
+                    this.classList.add('selected');
+                    
+                    // 自动提交答案
+                    setTimeout(() => {
+                        checkAnswer();
+                    }, 300);
+                });
+                optionsContainer.appendChild(optionBtn);
+            });
+            
+            choiceTestEl.classList.remove('d-none');
+        }
+
+        // 提交答案
+        function checkAnswer() {
+            const currentWord = testWords[currentIndex];
+            let isCorrect = false;
+            let userAnswer = '';
+            
+            switch(currentWord.testMode) {
+                case 'spelling':
+                    userAnswer = answerInput.value.trim().toLowerCase();
+                    isCorrect = userAnswer === currentWord.word.toLowerCase();
+                    break;
+                    
+                case 'choice':
+                    const selectedOption = document.querySelector('.option-btn.selected');
+                    if (!selectedOption) {
+                        return; // 如果没有选择选项，不提交
+                    }
+                    userAnswer = selectedOption.dataset.meaning;
+                    isCorrect = userAnswer === currentWord.meaning;
+                    break;
+            }
+            
+            if (!isCorrect) {
+                wrongAnswers.push({
+                    word: currentWord.word,
+                    userAnswer: userAnswer || '(未作答)',
+                    correctAnswer: currentWord.testMode === 'spelling' ? currentWord.word : currentWord.meaning,
+                    meaning: currentWord.meaning,
+                    mode: currentWord.testMode
+                });
+            } else {
+                score++;
+            }
+            
+            currentIndex++;
+            showNextQuestion();
+        }
+
+        // 显示结果
+        function showResults() {
+            stopTimer();
+            
+            testPage.style.display = 'none';
+            testActionBar.style.display = 'none';
+            resultPage.style.display = 'block';
+            resultActionBar.style.display = 'flex';
+            
+            // 计算分数
+            const percentage = Math.round((score / testWords.length) * 100);
+            scoreDisplay.textContent = `${percentage}%`;
+            
+            // 显示测试时间
+            const minutes = Math.floor(elapsedTime / 60000);
+            const seconds = Math.floor((elapsedTime % 60000) / 1000);
+            testTimeEl.textContent = `测试时间: ${minutes}分${seconds}秒`;
+            
+            // 显示统计信息
+            totalQuestionsEl.textContent = testWords.length;
+            correctCountEl.textContent = score;
+            wrongCountEl.textContent = testWords.length - score;
+            
+            // 显示错题
+            wrongTableBody.innerHTML = '';
+            wrongAnswers.forEach(item => {
+                const row = document.createElement('tr');
+                
+                const wordCell = document.createElement('td');
+                wordCell.textContent = item.word;
+                row.appendChild(wordCell);
+                
+                const userAnswerCell = document.createElement('td');
+                userAnswerCell.textContent = item.userAnswer;
+                row.appendChild(userAnswerCell);
+                
+                const correctAnswerCell = document.createElement('td');
+                correctAnswerCell.textContent = item.correctAnswer;
+                row.appendChild(correctAnswerCell);
+                
+                wrongTableBody.appendChild(row);
+            });
+        }
+
+        // 导出Excel
+        function exportToExcel() {
+            const exportData = wrongAnswers.map(item => ({
+                '单词': item.word,
+                '你的答案': item.userAnswer,
+                '正确答案': item.correctAnswer,
+                '释义': item.meaning,
+                '测试模式': item.mode === 'spelling' ? '拼写测试' : '选择题',
+                '测试标题': testSettings.title,
+                '姓名': studentInfo.name,
+                '班级': studentInfo.class,
+                '测试时间': new Date().toLocaleString()
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "错题集");
+            XLSX.writeFile(wb, `${studentInfo.name}_${testSettings.title}_错题集.xlsx`);
+        }
+
+        // 工具函数
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+    </script>
+</body>
+</html>
